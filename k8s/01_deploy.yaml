@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app-template
+  namespace: dev
+  labels:
+    app: test-app-template
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-app-template
+  template:
+    metadata:
+      labels:
+        app: test-app-template
+    spec:
+      containers:
+      - name: test-app-template
+        image: reg-dhc.app.corpintra.net/ontll/temp:dev
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 70
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 400m
+            memory: 400Mi
+          requests:
+            cpu: 400m
+            memory: 400Mi

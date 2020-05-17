@@ -1,0 +1,13 @@
+# base image from adopt openjdk
+FROM reg-dhc.app.corpintra.net/i3/adoptopenjdk:11-jdk-latest
+COPY pom.xml /tmp/
+#RUN TAG=$(echo ""|sed -n '/<version>/p' pom.xml | grep SNAPSHOT | cut -b 11-13)
+ARG TAG
+ENV TAG=$TAG
+COPY target/java-spring-boot-openshift-template-0.0.1-SNAPSHOT.jar /home
+RUN ls -l /home/
+RUN echo $TAG
+#Since we are having trouble to add variable inside the cmd string, we are hard coding this part
+ENTRYPOINT [ "java","-jar","/home/java-spring-boot-openshift-template-0.0.1-SNAPSHOT.jar"]
+USER 1001
+EXPOSE 8080

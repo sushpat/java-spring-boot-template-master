@@ -1,0 +1,17 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {app-name}
+  namespace: {name-space}
+  annotations:
+    traefik.frontend.rule.type: PathPrefixStrip
+    ingress.kubernetes.io/content-type-nosniff: "true"
+spec:
+  rules:
+  - host: {DNShost name}
+    http:
+      paths:
+      - path: /api
+        backend:
+            serviceName: {service_name}
+            servicePort: 8080

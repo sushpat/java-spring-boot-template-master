@@ -1,0 +1,17 @@
+apiVersion: extensions/v1beta1
+kind: NetworkPolicy
+metadata:
+  name: {app-name}
+  namespace: {name-space}
+spec:
+  podSelector:
+    matchLabels:
+      app: {name-space}
+  ingress:
+  - ports:
+    - port: 8080
+      protocol: TCP
+  - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress

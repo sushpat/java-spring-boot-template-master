@@ -1,0 +1,76 @@
+pipeline {
+  agent any 
+    stages {
+        stage('Code build') {
+          steps {            
+            /* 
+            Under this stage we are putting the settigns.xml from jenkins to jenkins slave to run the maven custimized notificatins. this seetings.xml availeble throguh managed files plugin. 
+                jenkins -> manage jenkins -> managed files -> Add a new Config -> maven settings.xml -> submit.
+            Then build the code with maven.
+            */
+                configFileProvider([configFile(fileId: 'a199817e-aa0a-4977-b96d-a4e7f400d05e', targetLocation: 'ontll_settings.xml')]) {
+                  //  sh "mvn --settings ontll_settings.xml clean install -Dmaven.test.skip=true"
+                    echo "${clusterName}"
+                    sh "mvn --settings ontll_settings.xml clean install -DskipTests"
+                }
+            }
+        }
+        stage('Build Image and push it to DHC') {
+
+            /*
+            In this stage we are building the docker image and push it into quey. and we are taking the tag name from pom file.
+            */
+          
+            steps ('Building image') {
+                //sh label: '', script: '''TAG=sed -n \'/<version>/p\' pom.xml | grep SNAPSHOT | cut -b 13-17
+                //this will extract version number from pom file and saving it in TAG.
+                //docker build . -t reg-dhc.app.corpintra.net/${regOrg}/${repo}:$TAG --build-arg TAG=$TAG
+                sh '''
+                 TAG=$(sed -n '/<version>/p' pom.xml | grep SNAPSHOT | cut -b 19-21)
+
+                 docker build . -t reg-dhc.app.corpintra.net/ontll/temp:${environment}
+                 '''
+              }
+            }
+
+        stage ('pusing image to dhc and delete the image created in jenkins'){
+            steps{
+              sh''' 
+              TAG=$(sed -n '/<version>/p' pom.xml | grep SNAPSHOT | cut -b 19-21)
+	      echo "Pushing  image to DHC"
+              docker push reg-dhc.app.corpintra.net/ontll/temp:${environment}
+              echo "Deleting  image from Jenkins"
+	      docker rmi \$(docker images reg-dhc.app.corpintra.net/ontll/temp:\${environment} | tr -s ' ' | cut -d ' ' -f 3 | grep -v IMAGE)
+              '''
+              }
+          }
+
+        stage ('Deploy in DHC k8s'){
+          
+            /*
+            In this stage we are deleting the deployment in k8s and creating a new deployment. To authinticate this k8s we have added kube config file to jenkins credientials then used them in with credientials
+            Then deleting the current deployment and create a new deployment to apply the latest changes.
+            */
+          
+            steps {
+                //withKubeConfig(caCertificate: '', clusterName: '${clusterName}', contextName: '', credentialsId: '${clusterName}', namespace: '${namespace}', serverUrl: '') {
+              //created using withCredentials binding variable plugin. always: variable: 'KUBECONFIG' 
+              withCredentials([kubeconfigFile(credentialsId: "$clusterName", variable: 'KUBECONFIG')]){
+                    sh'''
+                    echo "Deploying in ${clusterName} in namespace ${environment}"
+                    pwd
+                    
+                    '''
+		     script {
+		     try {
+		     	sh "kubectl delete -f /home/ubuntu/workspace/${projectName}/k8s/01_deploy.yaml"
+		     }catch (Exception e) {
+		      sh "echo 'handle it'"
+		     }
+                    sh "kubectl apply -f /home/ubuntu/workspace/${projectName}/k8s/01_deploy.yaml"
+		    }
+                }
+            }
+        }
+    }
+  }

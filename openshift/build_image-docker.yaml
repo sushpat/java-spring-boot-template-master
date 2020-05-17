@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: ${TARGET_NAME}-bootstrap
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+    labels:
+      app: ${TARGET_NAME}-bootstrap
+    name: ${TARGET_NAME}-bootstrap
+  spec:
+    nodeSelector: {}
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      git:
+        ref: <BRANCHNAME>
+        uri: <REPO-URL>
+      sourceSecret:
+        name: <SECRETNAME>
+      type: Git
+    strategy:
+      jenkinsPipelineStrategy:
+        jenkinsfilePath: Jenkinsfile
+      type: JenkinsPipeline
+    triggers:
+    - github:
+        secret: 72a49182fb9b9652
+      type: GitHub
+    - generic:
+        secret: a902eb01cc578abc
+      type: Generic
+    - type: ConfigChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: yaml
+    labels:
+      build: ${TARGET_NAME}
+    name: ${TARGET_NAME}
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - annotations: null
+      name: test
+    - annotations: null
+      name: int
+    - annotations: null
+      name: prod
+    dockerImageRepository: "" 
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftWebConsole
+    creationTimestamp: null
+    labels:
+      app: ${TARGET_NAME}-build
+    name: ${TARGET_NAME}-build
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${TARGET_NAME}:${TARGET_STAGE}
+    postCommit: {}
+    resources:
+      limits:
+        cpu: 200m
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 512Mi
+    runPolicy: Serial
+    source:
+      binary: {}
+      type: Binary
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: redhat-openjdk18-openshift:1.1
+          namespace: openshift
+      type: Source
+  status:
+    lastVersion: 0
+parameters:
+  - name: TARGET_NAME
+    displayName: Target name
+    description: Target name of the application
+    value: 
+    required: true
+  - name: TARGET_STAGE
+    displayName: Target name
+    description: Target name of the application
+    value: 
+    required: true

@@ -1,0 +1,147 @@
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: ${TARGET_NAME}-application-test
+objects:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftWebConsole
+    creationTimestamp: null
+    generation: 1
+    labels:
+      app: ${TARGET_NAME}
+    name: ${TARGET_NAME}
+  spec:
+    replicas: 1
+    selector:
+      app: ${TARGET_NAME}
+      deploymentconfig: ${TARGET_NAME}
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: ${TARGET_NAME}
+          deploymentconfig: ${TARGET_NAME}
+      spec:
+        containers:
+        - name: ${TARGET_NAME}
+          image: docker-registry.default.svc:5000/pdm2020-test/${TARGET_NAME}:latest
+          imagePullPolicy: Always
+          name: ${TARGET_NAME}
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources:
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ${TARGET_NAME}
+        from:
+          kind: ImageStreamTag
+          name: ${TARGET_NAME}:latest
+          namespace: pdm2020-dev
+      type: ImageChange
+    - type: ConfigChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftWebConsole
+    creationTimestamp: null
+    labels:
+      app: ${TARGET_NAME}
+    name: ${TARGET_NAME}
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      deploymentconfig: ${TARGET_NAME}
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {} 
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftWebConsole
+    creationTimestamp: null
+    labels:
+      app: ${TARGET_NAME}
+    name: ${TARGET_NAME}
+  spec:
+    host: ${TARGET_NAME}.test.caas.rd.corpintra.net
+    port:
+      targetPort: 8080-tcp
+    tls:
+      insecureEdgeTerminationPolicy: Allow
+      termination: edge
+    to:
+      kind: Service
+      name: ${TARGET_NAME}
+      weight: 100
+    wildcardPolicy: None
+parameters:
+  - name: TARGET_NAME
+    displayName: Target name
+    description: Target name of the application
+    value: cockpit-framework
+    required: true
+  - name: CPU_REQUEST
+    displayName: CPU Request
+    description: CPU Request for the depolyed application
+    value: 200m
+    required: false
+  - name: CPU_LIMIT
+    displayName: CPU Limit
+    description: CPU Limit for the depolyed application
+    value: 500m
+    required: false
+  - name: MEMORY_REQUEST
+    displayName: Memory Request
+    description: Memory Request for the depolyed application
+    value: 300M
+    required: false
+  - name: MEMORY_LIMIT
+    displayName: Memory Limit
+    description: Memory Limit for the depolyed application
+    value: 500M
+    required: false

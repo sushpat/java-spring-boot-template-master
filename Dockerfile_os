@@ -1,0 +1,5 @@
+FROM redhat-openjdk18-openshift:1.1
+COPY target/spring-boot-app.jar /deployments
+#ENV JAVA_OPTS=""
+CMD [ "/usr/local/s2i/run" ]
+EXPOSE 8080

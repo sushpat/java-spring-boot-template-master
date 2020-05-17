@@ -1,0 +1,26 @@
+pipeline {
+  agent any
+  stages {
+    stage('Env') {
+      steps {
+	    sh 'set'
+	  }	
+	}
+    stage('Build Image') {
+      steps {
+        script {
+          openshift.withCluster() {
+			try{
+				openshift.selector("bc", "java-spring-build").startBuild("--from-dir .", "--follow")
+			}catch (error) {
+				throw error
+		} finally {
+				echo "Using project: ${openshift.project()}"
+		}
+
+          }
+        }
+      }
+    }   
+  }
+}
