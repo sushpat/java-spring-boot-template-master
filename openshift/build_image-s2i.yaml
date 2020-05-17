@@ -89,12 +89,12 @@ parameters:
   - name: TARGET_NAME
     displayName: Target name
     description: Target name of the application
-    value: cockpit-framework
+    value: openshift Application
     required: true
   - name: URL
     displayName: URL
     description: git url
-    value: https://git.daimler.com/mbrdi-project-template/java-spring-boot-openshift-template.git
+    value: https://github.com/sushpat/java-spring-boot-template-master.git
     required: true
   - name: BASE_IMAGE
     displayName: BASE_IMAGE
